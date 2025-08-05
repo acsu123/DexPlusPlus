@@ -44,7 +44,9 @@ Every donation is highly apreciated, this is compeletely optional.
 - [UniversalSynapseSaveInstance (USSI)](https://github.com/luau/UniversalSynSaveInstance) https://discord.gg/wx4ThpAsmw
 
 ## License
-[![Dex++ License](https://img.shields.io/badge/MIT-License-green)](https://github.com/AZYsGithub/DexPlusPlus/blob/main/LICENSE)
+[![Dex++ License](https://img.shields.io/badge/Dex++-License-green)](https://github.com/AZYsGithub/DexPlusPlus/blob/main/LICENSE)
+
+[![USSI License](https://img.shields.io/badge/USSI-License-green)](https://github.com/luau/UniversalSynSaveInstance/blob/main/LICENSE)
 
 ## Credits
 - [Chillz](https://github.com/AZYsGithub) – Dex++ Maintainer  
