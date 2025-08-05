@@ -554,11 +554,7 @@ local function main()
 		win.Elements.Error.Text = ""
 		win.Elements.NameBox:SetText(filename or "")
 		
-		if win.Elements.NameBox.Text == "" then
-			win.Elements.SaveButton:SetDisabled(true)
-		else
-			win.Elements.SaveButton:SetDisabled(false)
-		end
+		win.Elements.SaveButton:SetDisabled(win.Elements.NameBox:GetText() == 0)
 		
 		win:Show()
 	end
