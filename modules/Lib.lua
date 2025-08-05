@@ -456,6 +456,107 @@ local function main()
 		env.writefile(filepath,data)
 		return Lib.LoadCustomAsset(filepath)
 	end
+	
+	local currentfilename, currentextension, currentclickhandler
+	currentclickhandler = function() end
+	Lib.SaveAsPrompt = function(filename, codeToSave, ext)		
+		local win = ScriptViewer.SaveAsWindow
+		if not win then
+			win = Lib.Window.new()
+			win.Alignable = false
+			win.Resizable = false
+			win:SetTitle("Save As")
+			win:SetSize(300,95)
+
+			local saveButton = Lib.Button.new()
+			local nameLabel = Lib.Label.new()
+			nameLabel.Text = "Name"
+			nameLabel.Position = UDim2.new(0,30,0,10)
+			nameLabel.Size = UDim2.new(0,40,0,20)
+			win:Add(nameLabel)
+
+			local nameBox = Lib.ViewportTextBox.new()
+			nameBox.Position = UDim2.new(0,75,0,10)
+			nameBox.Size = UDim2.new(0,220,0,20)
+			win:Add(nameBox,"NameBox")
+
+			--nameBox.TextBox.Text = filename or ""
+
+			nameBox.TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+				saveButton:SetDisabled(#nameBox:GetText() == 0)
+			end)
+
+			local errorLabel = Lib.Label.new()
+			errorLabel.Text = ""
+			errorLabel.Position = UDim2.new(0,5,1,-45)
+			errorLabel.Size = UDim2.new(1,-10,0,20)
+			errorLabel.TextColor3 = Settings.Theme.Important
+			win.ErrorLabel = errorLabel
+			win:Add(errorLabel,"Error")
+
+			local cancelButton = Lib.Button.new()
+			cancelButton.AnchorPoint = Vector2.new(1,1)
+			cancelButton.Text = "Cancel"
+			cancelButton.Position = UDim2.new(1,-5,1,-5)
+			cancelButton.Size = UDim2.new(0.5,-10,0,20)
+			cancelButton.OnClick:Connect(function()
+				win:Close()
+			end)
+			win:Add(cancelButton)
+
+			saveButton.Text = "Save"
+			saveButton.AnchorPoint = Vector2.new(0,1)
+			saveButton.Position = UDim2.new(0,5,1,-5)
+			saveButton.Size = UDim2.new(0.5,-5,0,20)
+			saveButton.OnClick:Connect(function()
+				currentclickhandler()
+			end)
+
+			win:Add(saveButton,"SaveButton")
+
+			ScriptViewer.SaveAsWindow = win
+		end
+
+		currentclickhandler = function()
+			if type(codeToSave) == "string" then
+				filename = (win.Elements.NameBox.TextBox.Text ~= "" and win.Elements.NameBox.TextBox.Text) or filename
+				currentextension = ext or filename:match("%.([^%.]+)$") or "txt"
+				filename = filename:gsub("%.[^.]+$", "") .. "." .. currentextension
+
+				local codeText = codeToSave or ""
+				if env.writefile then
+					local s, msg = pcall(env.writefile, filename, codeText)
+					if not s then
+						win.Elements.Error.Text = "Error: " .. msg
+						task.spawn(error, msg)
+						task.wait(1)
+					end
+				else
+					win.Elements.Error.Text = "Your executor does not support 'writefile'"
+					task.wait(1)
+				end
+			elseif type(codeToSave) == "function" then
+				filename = (win.Elements.NameBox.TextBox.Text ~= "" and win.Elements.NameBox.TextBox.Text) or filename
+				currentextension = ext or filename:match("%.([^%.]+)$") or "txt"
+				filename = filename:gsub("%.[^.]+$", "") .. "." .. currentextension
+
+				local s, msg = pcall(codeToSave,filename) -- callback
+				if not s then
+					win.Elements.Error.Text = "Error: " .. msg
+					task.spawn(error, msg)
+					Lib.FastWait(1)
+				end
+			end
+			win:Close()
+		end
+
+		win:SetTitle("Save As")
+		win.Elements.Error.Text = ""
+		win.Elements.NameBox:SetText(filename or "")
+		win.Elements.SaveButton:SetDisabled(true)
+
+		win:Show()
+	end
 
 	-- Classes
 
@@ -3066,6 +3167,46 @@ local function main()
 			self.Gui.Parent = nil
 			updateWindows(true)
 		end
+		
+		funcs.Destroy = function(self)
+			self.Closed = true
+			self:SetResizableInternal(false)
+
+			Lib.FindAndRemove(leftSide.Windows,self)
+			Lib.FindAndRemove(rightSide.Windows,self)
+			Lib.FindAndRemove(visibleWindows,self)
+
+			self.MinimizeAnim.Disable()
+			self.CloseAnim.Disable()
+			self.ClosedSide = self.Side
+			self.Side = nil
+			self.OnDeactivate:Fire()
+
+			if not self.Aligned then
+				self:StopTweens()
+				local ti = TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+
+				local closeTime = tick()
+				self.LastClose = closeTime
+
+				self:DoTween(self.GuiElems.Main,ti,{Size = UDim2.new(0,self.SizeX,0,20)})
+				self:DoTween(self.GuiElems.Title,ti,{TextTransparency = 1})
+				self:DoTween(self.GuiElems.Minimize.ImageLabel,ti,{ImageTransparency = 1})
+				self:DoTween(self.GuiElems.Close.ImageLabel,ti,{ImageTransparency = 1})
+				Lib.FastWait(0.2)
+				if closeTime ~= self.LastClose then return end
+
+				self:DoTween(self.GuiElems.TopBar,ti,{BackgroundTransparency = 1})
+				self:DoTween(self.GuiElems.Outlines,ti,{ImageTransparency = 1})
+				Lib.FastWait(0.2)
+				if closeTime ~= self.LastClose then return end
+			end
+
+			self.Aligned = false
+			--self.Gui.Parent = nil
+			updateWindows(true)
+			self.Gui:Destroy()
+		end
 
 		funcs.Hide = funcs.Close
 
@@ -3401,6 +3542,8 @@ local function main()
 				IconMap = item.IconMap,
 				OnRightClick = item.OnRightClick
 			}
+			
+			newItem.DisabledIcon = newItem.Icon
 
 			if self.QueuedDivider then
 				local text = self.QueuedDividerText and #self.QueuedDividerText > 0 and self.QueuedDividerText
@@ -3501,8 +3644,14 @@ local function main()
 						newEntry.EntryName.Position = UDim2.new(0,2,0,0)
 						newEntry.EntryName.Size = UDim2.new(1,-4,0,20)
 						newEntry.Icon.Visible = false
-					else
-						local iconIndex = item.Disabled and item.DisabledIcon or item.Icon
+					else			
+						local iconIndex
+						if item.Disabled and item.DisabledIcon then
+							iconIndex = item.DisabledIcon
+						elseif item.Icon then
+							iconIndex =  item.Icon
+						end
+						
 						-- Explorer.MiscIcons:DisplayExplorerIcons(newEntry.Icon, iconIndex)
 						if item.IconMap then
 							if type(iconIndex) == "number" then

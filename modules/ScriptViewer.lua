@@ -3,7 +3,6 @@
 	
 	A script viewer that is basically a notepad
 ]]
-local loadstring = (game:GetService("RunService"):IsStudio() and require(script.Parent.Loadstring)) or loadstring
 -- Common Locals
 local Main,Lib,Apps,Settings -- Main Containers
 local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
@@ -53,39 +52,10 @@ end
 local function main()
 	local ScriptViewer = {}
 	local window, codeFrame
+	
+	local execute, clear, dumpbtn
+	
 	local PreviousScr = nil
-
-	ScriptViewer.ViewScript = function(scr)
-		local oldtick = tick()
-		local s,source = pcall(env.decompile or function() end,scr)
-		
-		if not s or not source then
-			PreviousScr = nil
-			source = "-- Unable to view source.\n"
-			source = source .. "-- Script Path: "..getPath(scr).."\n"
-			if scr:IsA("Script") and scr.RunContext == Enum.RunContext.Legacy and not scr:IsA("LocalScript") then
-				source = source .. "-- Reason: The script is likely to be running on server, or your executor does not support decompiler.\n"
-			else
-				source = source .. "-- Reason: Your executor does not support decompiler.\n"
-			end
-			source = source .. "-- Executor: "..executorName.." ("..executorVersion..")"
-		else
-			PreviousScr = scr
-			local decompiled = source
-
-			source = "-- Script Path: "..getPath(scr).."\n"
-			source = source .. "-- Took "..tostring(math.floor( (tick() - oldtick) * 100) / 100).."s to decompile.\n"
-			source = source .. "-- Executor: "..executorName.." ("..executorVersion..")\n\n"
-			
-			source = source .. decompiled
-			
-			oldtick = nil
-			decompiled = nil
-		end
-		
-		codeFrame:SetText(source)
-		window:Show()
-	end
 	
 	ScriptViewer.DumpFunctions = function(scr)
 		-- thanks King.Kevin#6025 you'll obviously be credited (no discord tag since that can easily be impersonated)
@@ -170,6 +140,8 @@ local function main()
 
 		if dump ~= original then source = source .. dump .. "]]" end
 		codeFrame:SetText(source)
+		
+		window:Show()
 	end
 
 	ScriptViewer.Init = function()
@@ -188,11 +160,18 @@ local function main()
 		copy.Size = UDim2.new(0.33,0,0,20)
 		copy.Position = UDim2.new(0,0,0,0)
 		copy.Text = "Copy to Clipboard"
-		copy.TextColor3 = Color3.new(1,1,1)
+		
+		if env.setclipboard then
+			copy.TextColor3 = Color3.new(1,1,1)
+			copy.Interactable = true
+		else
+			copy.TextColor3 = Color3.new(0.5,0.5,0.5)
+			copy.Interactable = false
+		end
 
 		copy.MouseButton1Click:Connect(function()
 			local source = codeFrame:GetText()
-			setclipboard(source)
+			env.setclipboard(source)
 		end)
 
 		local save = Instance.new("TextButton",window.GuiElems.Content)
@@ -201,23 +180,37 @@ local function main()
 		save.Position = UDim2.new(0.33,0,0,0)
 		save.Text = "Save to File"
 		save.TextColor3 = Color3.new(1,1,1)
+		
+		if env.writefile then
+			save.TextColor3 = Color3.new(1,1,1)
+			save.Interactable = true
+		else
+			save.TextColor3 = Color3.new(0.5,0.5,0.5)
+			--save.Interactable = false
+		end
 
 		save.MouseButton1Click:Connect(function()
 			local source = codeFrame:GetText()
 			local filename = "Place_"..game.PlaceId.."_Script_"..os.time()..".txt"
 
-			writefile(filename,source)
-			--[[if movefileas then -- TODO: USE ENV
-				movefileas(filename,".txt")
-			end]]
+			Lib.SaveAsPrompt(filename,source)
+			--env.writefile(filename,source)
 		end)
 		
-		local dumpbtn = Instance.new("TextButton",window.GuiElems.Content)
+		dumpbtn = Instance.new("TextButton",window.GuiElems.Content)
 		dumpbtn.BackgroundTransparency = 1
 		dumpbtn.Position = UDim2.new(0.7,0,0,0)
 		dumpbtn.Size = UDim2.new(0.3,0,0,20)
 		dumpbtn.Text = "Dump Functions"
-		dumpbtn.TextColor3 = Color3.new(1,1,1)
+		dumpbtn.TextColor3 = Color3.new(0.5,0.5,0.5)
+		
+		if env.getgc then
+			dumpbtn.TextColor3 = Color3.new(1,1,1)
+			dumpbtn.Interactable = true
+		else
+			dumpbtn.TextColor3 = Color3.new(0.5,0.5,0.5)
+			dumpbtn.Interactable = false
+		end
 
 		dumpbtn.MouseButton1Click:Connect(function()
 			if PreviousScr ~= nil then
@@ -228,19 +221,27 @@ local function main()
 		-- Buttons below the editor
 		
 		
-		local execute = Instance.new("TextButton",window.GuiElems.Content)
+		execute = Instance.new("TextButton",window.GuiElems.Content)
 		execute.BackgroundTransparency = 1
 		execute.Size = UDim2.new(0.5,0,0,20)
 		execute.Position = UDim2.new(0,0,1,-20)
 		execute.Text = "Execute"
 		execute.TextColor3 = Color3.new(1,1,1)
+		
+		if env.loadstring then
+			execute.TextColor3 = Color3.new(1,1,1)
+			execute.Interactable = true
+		else
+			execute.TextColor3 = Color3.new(0.5,0.5,0.5)
+			execute.Interactable = false
+		end
 
 		execute.MouseButton1Click:Connect(function()
 			local source = codeFrame:GetText()
-			loadstring(source)()
+			env.loadstring(source)()
 		end)
 
-		local clear = Instance.new("TextButton",window.GuiElems.Content)
+		clear = Instance.new("TextButton",window.GuiElems.Content)
 		clear.BackgroundTransparency = 1
 		clear.Size = UDim2.new(0.5,0,0,20)
 		clear.Position = UDim2.new(0.5,0,1,-20)
@@ -250,6 +251,43 @@ local function main()
 		clear.MouseButton1Click:Connect(function()
 			codeFrame:SetText("")
 		end)
+	end
+	
+	ScriptViewer.ViewScript = function(scr)
+		local oldtick = tick()
+		local s,source = pcall(env.decompile or function() end,scr)
+
+		if not s or not source then
+			PreviousScr = nil
+			dumpbtn.TextColor3 = Color3.new(0.5,0.5,0.5)
+			source = "-- Unable to view source.\n"
+			source = source .. "-- Script Path: "..getPath(scr).."\n"
+			if (scr.ClassName == "Script" and (scr.RunContext == Enum.RunContext.Legacy or scr.RunContext == Enum.RunContext.Server)) or not scr:IsA("LocalScript") then
+				source = source .. "-- Reason: The script is not running on client. (attempt to decompile ServerScript or 'Script' with RunContext Server)\n"
+			elseif not env.decompile then
+				source = source .. "-- Reason: Your executor does not support decompiler. (missing 'decompile' function)\n"
+			else
+				source = source .. "-- Reason: Unknown\n"
+			end
+			source = source .. "-- Executor: "..executorName.." ("..executorVersion..")"
+		else
+			PreviousScr = scr
+			dumpbtn.TextColor3 = Color3.new(1,1,1)
+
+			local decompiled = source
+
+			source = "-- Script Path: "..getPath(scr).."\n"
+			source = source .. "-- Took "..tostring(math.floor( (tick() - oldtick) * 100) / 100).."s to decompile.\n"
+			source = source .. "-- Executor: "..executorName.." ("..executorVersion..")\n\n"
+
+			source = source .. decompiled
+
+			oldtick = nil
+			decompiled = nil
+		end
+
+		codeFrame:SetText(source)
+		window:Show()
 	end
 
 	return ScriptViewer

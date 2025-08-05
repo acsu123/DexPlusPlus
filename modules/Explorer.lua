@@ -917,8 +917,8 @@ local function main()
 
 		if presentClasses["BasePart"] or presentClasses["Model"] then
 			context:AddRegistered("TELEPORT_TO")
-			context:AddRegistered("VIEW_MODEL")
-			context:AddRegistered("SPECTATE_OBJECT")
+			context:AddRegistered("VIEW_OBJECT")
+			context:AddRegistered("3DVIEW_MODEL")
 		end
 		if presentClasses["Tween"] then context:AddRegistered("PLAY_TWEEN") end
 		if presentClasses["Animation"] then
@@ -1328,7 +1328,7 @@ local function main()
 			return str
 		end
 
-		context:Register("COPY_PATH",{Name = "Copy Path", IconMap = Explorer.ClassIcons, Icon = 50, OnClick = function()
+		context:Register("COPY_PATH",{Name = "Copy Path", IconMap = Explorer.LegacyClassIcons, Icon = 50, OnClick = function()
 			local sList = selection.List
 			if #sList == 1 then
 				env.setclipboard(clth(Explorer.GetInstancePath(sList[1].Obj)))
@@ -1364,17 +1364,21 @@ local function main()
 		context:Register("SAVE_INST",{Name = "Save to File", IconMap = Explorer.MiscIcons, Icon = "Save", OnClick = function()
 			local sList = selection.List
 			if #sList == 1 then
-				env.saveinstance(sList[1].Obj, "Place_"..game.PlaceId.."_"..sList[1].Obj.ClassName.."_"..sList[1].Obj.Name.."_"..os.time(), {
-					Decompile = true
-				})
+				Lib.SaveAsPrompt("Place_"..game.PlaceId.."_"..sList[1].Obj.ClassName.."_"..sList[1].Obj.Name.."_"..os.time(), function(filename)
+					env.saveinstance(sList[1].Obj, filename, {
+						Decompile = true
+					})
+				end)
 			elseif #sList > 1 then
 				for i = 1,#sList do
 					-- sList[i].Obj.Name.." ("..sList[1].Obj.ClassName..")"
 					-- "Place_"..game.PlaceId.."_"..sList[1].Obj.ClassName.."_"..sList[i].Obj.Name.."_"..os.time()
-
-					env.saveinstance(sList[i].Obj, "Place_"..game.PlaceId.."_"..sList[i].Obj.ClassName.."_"..sList[i].Obj.Name.."_"..os.time(), {
-						Decompile = true
-					})
+					Lib.SaveAsPrompt("Place_"..game.PlaceId.."_"..sList[i].Obj.ClassName.."_"..sList[i].Obj.Name.."_"..os.time(), function(filename)
+						env.saveinstance(sList[i].Obj, filename, {
+							Decompile = true
+						})
+					end)
+					
 					task.wait(0.1)
 				end
 			end
@@ -1391,7 +1395,7 @@ local function main()
 			BindableRemote = "Fire",
 			BindableFunction = "Invoke",
 		}
-		context:Register("BLOCK_REMOTE",{Name = "Block From Firing", IconMap = Explorer.MiscIcons, Icon = "Delete", OnClick = function()
+		context:Register("BLOCK_REMOTE",{Name = "Block From Firing", IconMap = Explorer.MiscIcons, Icon = "Delete", DisabledIcon = "Empty", OnClick = function()
 			local sList = selection.List
 			for i, list in sList do
 				local obj = list.Obj
@@ -1412,7 +1416,7 @@ local function main()
 			end
 		end})
 		
-		context:Register("UNBLOCK_REMOTE",{Name = "Unblock", IconMap = Explorer.MiscIcons, Icon = "Play", OnClick = function()
+		context:Register("UNBLOCK_REMOTE",{Name = "Unblock", IconMap = Explorer.MiscIcons, Icon = "Play", DisabledIcon = "Empty", OnClick = function()
 			local sList = selection.List
 			for i, list in sList do
 				local obj = list.Obj
@@ -1435,7 +1439,19 @@ local function main()
 			end
 		end})
 
-		context:Register("SPECTATE_OBJECT",{Name = "Spectate Object (Right click to reset)", IconMap = Explorer.ClassIcons, Icon = "Camera", OnClick = function()
+		context:Register("3DVIEW_MODEL",{Name = "3D Preview Object", IconMap = Explorer.LegacyClassIcons, Icon = 54, OnClick = function()
+			local sList = selection.List
+			local isa = game.IsA
+			
+			if #sList == 1 then
+				if isa(sList[1].Obj,"BasePart") or isa(sList[1].Obj,"Model") then
+					ModelViewer.ViewModel(sList[1].Obj)
+					return
+				end
+			end
+		end})
+		
+		context:Register("VIEW_OBJECT",{Name = "View Object (Right click to reset)", IconMap = Explorer.LegacyClassIcons, Icon = 5, OnClick = function()
 			local sList = selection.List
 			local isa = game.IsA
 
@@ -1451,23 +1467,11 @@ local function main()
 			workspace.CurrentCamera.CameraSubject = plr.Character
 		end})
 
-		context:Register("VIEW_MODEL",{Name = "View Model", IconMap = Explorer.ClassIcons, Icon = "Camera", OnClick = function()
-			local sList = selection.List
-			local isa = game.IsA
-			
-			if #sList == 1 then
-				if isa(sList[1].Obj,"BasePart") or isa(sList[1].Obj,"Model") then
-					ModelViewer.ViewModel(sList[1].Obj)
-					return
-				end
-			end
-		end})
-
-		context:Register("VIEW_SCRIPT",{Name = "View Script", IconMap = Explorer.MiscIcons, Icon = "ViewScript", OnClick = function()
+		context:Register("VIEW_SCRIPT",{Name = "View Script", IconMap = Explorer.MiscIcons, Icon = "ViewScript", DisabledIcon = "Empty", OnClick = function()
 			local scr = selection.List[1] and selection.List[1].Obj
 			if scr then ScriptViewer.ViewScript(scr) end
 		end})
-		context:Register("DUMP_FUNCTIONS",{Name = "Dump Functions", IconMap = Explorer.MiscIcons, Icon = "ViewScript", OnClick = function()
+		context:Register("DUMP_FUNCTIONS",{Name = "Dump Functions", IconMap = Explorer.MiscIcons, Icon = "SelectChildren", DisabledIcon = "Empty", OnClick = function()
 			local scr = selection.List[1] and selection.List[1].Obj
 			if scr then ScriptViewer.DumpFunctions(scr) end
 		end})
@@ -1490,37 +1494,40 @@ local function main()
 			for _, v in ipairs(selection.List) do if v.Obj and v.Obj:IsA("ProximityPrompt") then fireproximityprompt(v.Obj) end end
 		end})
 
-		context:Register("VIEW_SCRIPT",{Name = "View Script", IconMap = Explorer.MiscIcons, Icon = "ViewScript", OnClick = function()
+		context:Register("VIEW_SCRIPT",{Name = "View Script", IconMap = Explorer.MiscIcons, Icon = "ViewScript", DisabledIcon = "Empty", OnClick = function()
 			local scr = selection.List[1] and selection.List[1].Obj
 			if scr then ScriptViewer.ViewScript(scr) end
 		end})
 
-		context:Register("SAVE_SCRIPT",{Name = "Save Script", IconMap = Explorer.MiscIcons, Icon = "Save", OnClick = function()
+		context:Register("SAVE_SCRIPT",{Name = "Save Script", IconMap = Explorer.MiscIcons, Icon = "Save", DisabledIcon = "Empty", OnClick = function()
 			for _, v in next, selection.List do
 				if v.Obj:IsA("LuaSourceContainer") and env.isViableDecompileScript(v.Obj) then
 					local success, source = pcall(env.decompile, v.Obj)
 					if not success or not source then source = ("-- DEX - %s failed to decompile %s"):format(env.executor, v.Obj.ClassName) end
-					local fileName = ("%i.%s.%s.Source.txt"):format(game.PlaceId, v.Obj.ClassName, env.parsefile(v.Obj.Name))
-					env.writefile(fileName, source)
+					local fileName = ("%s_%s_%i_Source.txt"):format(env.parsefile(v.Obj.Name), v.Obj.ClassName, game.PlaceId)
+					--env.writefile(fileName, source)
+					Lib.SaveAsPrompt(fileName, source)
+					
 					task.wait(0.2)
 				end
 			end
 		end})
 
-		context:Register("SAVE_BYTECODE",{Name = "Save Script Bytecode", IconMap = Explorer.MiscIcons, Icon = "Save", OnClick = function()
+		context:Register("SAVE_BYTECODE",{Name = "Save Script Bytecode", IconMap = Explorer.MiscIcons, Icon = "Save", DisabledIcon = "Empty", OnClick = function()
 			for _, v in next, selection.List do
 				if v.Obj:IsA("LuaSourceContainer") and env.isViableDecompileScript(v.Obj) then
-					local success, bytecode = pcall(getscriptbytecode, v.Obj)
+					local success, bytecode = pcall(env.getscriptbytecode, v.Obj)
 					if success and type(bytecode) == "string" then
-						local fileName = ("%i.%s.%s.Bytecode.txt"):format(game.PlaceId, v.Obj.ClassName, env.parsefile(v.Obj.Name))
-						env.writefile(fileName, bytecode)
+						local fileName = ("%s_%s_%i_Bytecode.txt"):format(env.parsefile(v.Obj.Name), v.Obj.ClassName, game.PlaceId)
+						--env.writefile(fileName, bytecode)
+						Lib.SaveAsPrompt(fileName, bytecode)
 						task.wait(0.2)
 					end
 				end
 			end
 		end})
 
-		context:Register("SELECT_CHARACTER",{Name = "Select Character", IconMap = Explorer.ClassIcons, Icon = 9, OnClick = function()
+		context:Register("SELECT_CHARACTER",{Name = "Select Character", IconMap = Explorer.LegacyClassIcons, Icon = 9, OnClick = function()
 			local newSelection = {}
 			local count = 1
 			local sList = selection.List
@@ -1542,7 +1549,7 @@ local function main()
 			end
 		end})
 
-		context:Register("VIEW_PLAYER",{Name = "View Player", IconMap = Explorer.ClassIcons, Icon = 5, OnClick = function()
+		context:Register("VIEW_PLAYER",{Name = "View Player", IconMap = Explorer.LegacyClassIcons, Icon = 5, OnClick = function()
 			local newSelection = {}
 			local count = 1
 			local sList = selection.List
@@ -1558,11 +1565,11 @@ local function main()
 			end
 		end})
 
-		context:Register("SELECT_LOCAL_PLAYER",{Name = "Select Local Player", IconMap = Explorer.ClassIcons, Icon = 9, OnClick = function()
+		context:Register("SELECT_LOCAL_PLAYER",{Name = "Select Local Player", IconMap = Explorer.LegacyClassIcons, Icon = 9, OnClick = function()
 			pcall(function() if nodes[plr] then selection:Set(nodes[plr]) Explorer.ViewNode(nodes[plr]) end end)
 		end})
 
-		context:Register("SELECT_ALL_CHARACTERS",{Name = "Select All Characters", IconMap = Explorer.ClassIcons, Icon = 2, OnClick = function()
+		context:Register("SELECT_ALL_CHARACTERS",{Name = "Select All Characters", IconMap = Explorer.LegacyClassIcons, Icon = 2, OnClick = function()
 			local newSelection = {}
 			local sList = selection.List
 
@@ -2432,6 +2439,8 @@ return search]==]
 	end
 
 	Explorer.Init = function()
+		Explorer.LegacyClassIcons = Lib.IconMap.newLinear("rbxasset://textures/ClassImages.PNG", 16,16)
+		
 		if Settings.ClassIcon ~= nil and Settings.ClassIcon ~= "Old" then
 			iconData = Lib.IconMap.getIconDataFromName(Settings.ClassIcon)
 			
@@ -2441,6 +2450,7 @@ return search]==]
 			for i,v in pairs(iconData.Icons) do
 				fixed[i] = v - 1
 			end
+			
 			iconData.Icons = fixed
 			Explorer.ClassIcons:SetDict(fixed)
 		else

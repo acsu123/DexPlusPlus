@@ -66,7 +66,7 @@ local function main()
 			viewportFrame:ClearAllChildren()
 			
 			ModelViewer.IsViewing = false
-			window:SetTitle("Model Viewer")
+			window:SetTitle("3D Preview")
 			pathLabel.Gui.Text = ""
 		end
 	end
@@ -140,7 +140,7 @@ local function main()
 			camera.Parent = viewportFrame
 			camera.FieldOfView = 60
 			
-			window:SetTitle(item.Name.." - Model Viewer")
+			window:SetTitle(item.Name.." - 3D Preview")
 			pathLabel.Gui.Text = "path: " .. getPath(originalModel)
 			window:Show()
 			ModelViewer.IsViewing = true
@@ -149,7 +149,7 @@ local function main()
 
 	ModelViewer.Init = function()
 		window = Lib.Window.new()
-		window:SetTitle("Model Viewer")
+		window:SetTitle("3D Preview")
 		window:Resize(350,200)
 		ModelViewer.Window =  window
 		
@@ -287,29 +287,33 @@ local function main()
 		end})
 		context:Register("SAVE_INST",{Name = "Save to File", OnClick = function()
 			if model then
-				window:SetTitle(originalModel.Name.." - Model Viewer - Saving")
-				local success, result = pcall(env.saveinstance,
-					originalModel, "Place_"..game.PlaceId.."_"..originalModel.Name.."_"..os.time(),
-					{
-						Decompile = true
-					}
-				)
-				if success then
-					window:SetTitle(originalModel.Name.." - Model Viewer - Saved")
-					context:Hide()
-					task.wait(5)
-					if model then
-						window:SetTitle(originalModel.Name.." - Model Viewer")
+				Lib.SaveAsPrompt("Place_"..game.PlaceId.."_"..originalModel.Name.."_"..os.time(), function(filename)
+					window:SetTitle(originalModel.Name.." - Model Viewer - Saving")	
+					
+					local success, result = pcall(env.saveinstance,
+					originalModel, filename,
+						{
+							Decompile = true
+						}
+					)
+					
+					if success then
+						window:SetTitle(originalModel.Name.." - Model Viewer - Saved")
+						context:Hide()
+						task.wait(5)
+						if model then
+							window:SetTitle(originalModel.Name.." - Model Viewer")
+						end
+					else
+						window:SetTitle(originalModel.Name.." - Model Viewer - Error")
+						warn("Error while saving model: "..result)
+						context:Hide()
+						task.wait(5)
+						if model then
+							window:SetTitle(originalModel.Name.." - Model Viewer")
+						end
 					end
-				else
-					window:SetTitle(originalModel.Name.." - Model Viewer - Error")
-					warn("Error while saving model: "..result)
-					context:Hide()
-					task.wait(5)
-					if model then
-						window:SetTitle(originalModel.Name.." - Model Viewer")
-					end
-				end
+				end)
 			end
 		end})
 		

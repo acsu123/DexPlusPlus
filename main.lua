@@ -1,12 +1,11 @@
 --[[
 	Dex++
-	Beta 1.5.0 Version
+	Stable 2.1
 	
 	Developed by Chillz
 	
 	Dex++ is a revival of Moon's Dex, made to fulfill Moon's Dex prophecy.
 ]]
-
 local oldgame = oldgame or game
 
 cloneref = cloneref or function(ref)
@@ -41,13 +40,17 @@ cloneref = cloneref or function(ref)
 	end
 	return f.invalidate
 end
+
+local isFsSupported = readfile and writefile and isfile and isfolder and listfiles and delfile and delfolder
+
 -- Main vars
-local Main, Explorer, Properties, ScriptViewer, Console, SaveInstance, ModelViewer, SecretServicePanel, DefaultSettings, Notebook, Serializer, Lib local ggv = getgenv or nil
+local Main, Explorer, Properties, ScriptViewer, Console, SaveInstance, ModelViewer--[[, SecretServicePanel]], DefaultSettings, Notebook, Serializer, Lib local ggv = getgenv or nil
 local API, RMD
 
 -- Default Settings
 DefaultSettings = (function()
-	local rgb = Color3.fromRGB
+	local rgb = Color3.fromRGB	
+	
 	return {
 		Explorer = {
 			_Recurse = true,
@@ -131,7 +134,7 @@ DefaultSettings = (function()
 end)()
 
 -- Vars
-local Settings = {}
+local Settings = DefaultSettings or {}
 local Apps = {}
 local env = {}
 
@@ -170,11 +173,11 @@ end
 Main = (function()
 	local Main = {}
 
-	Main.ModuleList = {"Explorer","Properties","ScriptViewer","Console","SaveInstance","ModelViewer", "SecretServicePanel"}
+	Main.ModuleList = {"Explorer","Properties","ScriptViewer","Console","SaveInstance","ModelViewer"}
 	Main.Elevated = false
 	Main.AllowDraggableOnMobile = true
 	Main.MissingEnv = {}
-	Main.Version = "2.1"
+	Main.Version = DexVersion or "2.2"
 	Main.Mouse = plr:GetMouse()
 	Main.AppControls = {}
 	Main.Apps = Apps
@@ -188,7 +191,7 @@ Main = (function()
 		Core = 101000
 	}
 	
-	Main.LoadAdonisBypass = function()
+	--[[Main.LoadAdonisBypass = function()
 		-- skidded off reddit :pensive:
 		local getinfo = getinfo or debug.getinfo
 		local DEBUG = false
@@ -251,7 +254,7 @@ Main = (function()
 	
 	Main.LoadGCBypass = function()
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/secretisadev/Babyhamsta_Backup/refs/heads/main/Universal/Bypasses.lua", true))()
-	end
+	end]]
 	
 	Main.GetRandomString = function()
 		local output = ""
@@ -399,7 +402,7 @@ Main = (function()
 		ModelViewer = Apps.ModelViewer
 		Notebook = Apps.Notebook
 		
-		SecretServicePanel = Apps.SecretServicePanel
+		--SecretServicePanel = Apps.SecretServicePanel
 		local appTable = {
 			Explorer = Explorer,
 			Properties = Properties,
@@ -409,7 +412,7 @@ Main = (function()
 			ModelViewer = ModelViewer,
 			Notebook = Notebook,
 			
-			SecretServicePanel = SecretServicePanel,
+			--SecretServicePanel = SecretServicePanel,
 		}
 
 		Main.AppControls.Lib.InitAfterMain(appTable)
@@ -428,8 +431,12 @@ Main = (function()
 		end})
 
 		env.isonmobile = game:GetService("UserInputService").TouchEnabled
+		
+		env.loadstring = (pcall(loadstring,"local a = 1") and loadstring) or (game:GetService("RunService"):IsStudio() and script.Modules:FindFirstChild("Loadstring") and require(script.Modules:FindFirstChild("Loadstring")))
 
 		-- file
+		env.isfile = isfile
+		env.isfolder = isfolder
 		env.readfile = readfile
 		env.writefile = writefile
 		env.appendfile = appendfile
@@ -438,7 +445,7 @@ Main = (function()
 		env.loadfile = loadfile
 		env.saveinstance = saveinstance or (function()
 			--warn("No built-in saveinstance exists, using SynSaveInstance and wrapper...")
-			if game:GetService("RunService"):IsStudio() then return end
+			if game:GetService("RunService"):IsStudio() then return function() error("Cannot run in Roblox Studio!") end end
 			local Params = {
 				RepoURL = "https://raw.githubusercontent.com/luau/SynSaveInstance/main/",
 				SSI = "saveinstance",
@@ -447,14 +454,17 @@ Main = (function()
 		
 			local function wrappedsaveinstance(obj, filepath, options)
 				options["FilePath"] = filepath
-				synsaveinstance(options)
+				options["Object"] = obj
+				return synsaveinstance(options)
 			end
 			
 			getgenv().saveinstance = wrappedsaveinstance
-			env.saveinstance = wrappedsaveinstance
-			env.wrappedsaveinstance = wrappedsaveinstance
 			return wrappedsaveinstance
 		end)()
+		
+		env.parsefile = function(name)
+			return tostring(name):gsub("[*\\?:<>|]+", ""):sub(1, 175)
+		end
 
 		-- debug
 		env.getupvalues = debug.getupvalues or getupvalues or getupvals
@@ -469,8 +479,8 @@ Main = (function()
 		env.hookmetamethod = hookmetamethod
 
 		-- other
+		env.getscriptbytecode = getscriptbytecode
 		env.setfflag = setfflag
-		env.decompile = decompile
 		env.protectgui = protect_gui or (syn and syn.protect_gui)
 		env.gethui = gethui
 		env.setclipboard = setclipboard
@@ -487,14 +497,13 @@ Main = (function()
 			end
 			return false
 		end
-		
 		env.request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
 		
 		env.decompile = decompile or (function()
 			-- by lovrewe
 			--warn("No built-in decompiler exists, using Konstant decompiler...")
 			--assert(getscriptbytecode, "Exploit not supported.")
-
+			
 			if not env.getscriptbytecode then --[[warn('Konstant decompiler is not supported. "getscriptbytecode" is missing.')]] return end
 
 			local API = "http://api.plusgiant5.com"
@@ -504,7 +513,7 @@ Main = (function()
 			local request = env.request
 
 			local function call(konstantType, scriptPath)
-				local success, bytecode = pcall(getscriptbytecode, scriptPath)
+				local success, bytecode = pcall(env.getscriptbytecode, scriptPath)
 
 				if (not success) then
 					return `-- Failed to get script bytecode, error:\n\n--[[\n{bytecode}\n--]]`
@@ -612,22 +621,91 @@ Main = (function()
 		coroutine.wrap(function() local start = tick() wait(5) if tick() - start < 0.1 or not second then incompatibleMessage("SKIDDED YIELDING") end end)()
 		second = true]]
 	end
+	
+	local function serialize(val)
+		if typeof(val) == "Color3" then
+			local serializedColor = {}
+			serializedColor.R = val.R
+			serializedColor.G = val.G
+			serializedColor.B = val.B
+			return serializedColor
+		else
+			return val
+		end
+	end
+	
+	local function deserialize(val)
+		if typeof(val) == "table" then
+			if val.R and val.G and val.B then
+				return Color3.new(val.R, val.G, val.B)
+			else
+				return val
+			end
+		else
+			return val
+		end
+	end
+	
+	Main.ExportSettings = function()
+		local rawData = Settings or DefaultSettings
+
+		local function recur(tbl)
+			local newTbl = {}
+			for i, v in pairs(tbl) do
+				if typeof(v) == "table" then
+					newTbl[i] = recur(v)
+				else
+					newTbl[i] = serialize(v)
+				end
+			end
+			return newTbl
+		end
+
+		-- serialize color3 sebelum encode
+		local serializedData = recur(rawData)
+
+		local s, json = pcall(service.HttpService.JSONEncode, service.HttpService, serializedData)
+		if s and json then
+			return json
+		end
+	end
+
+
+	--warn(Main.ExportSettings())
 
 	Main.LoadSettings = function()
-		local s,data = pcall(env.readfile or error,"DexSettings.json")
+		local s, data = pcall(env.readfile or error, "DexSettings.json")
 		if s and data and data ~= "" then
-			local s,decoded = service.HttpService:JSONDecode(data)
+			local s, decoded = pcall(service.HttpService.JSONDecode, service.HttpService, data)
 			if s and decoded then
-				for i,v in next,decoded do
 
+				local function recur(tbl)
+					local newTbl = {}
+					for i, v in pairs(tbl) do
+						if typeof(v) == "table" then
+							newTbl[i] = deserialize(recur(v))
+						else
+							newTbl[i] = deserialize(v)
+						end
+					end
+					return newTbl
 				end
+
+				local deserializedData = recur(decoded)
+				for k, v in pairs(deserializedData) do
+					Settings[k] = v
+				end
+
 			else
-				-- TODO: Notification
+				warn("failed to decode settings json")
 			end
 		else
 			Main.ResetSettings()
 		end
 	end
+
+	
+	
 
 	Main.ResetSettings = function()
 		local function recur(t,res)
@@ -944,6 +1022,7 @@ Main = (function()
 			{15,"ImageLabel",{BackgroundColor3=Color3.new(1,1,1),BackgroundTransparency=1,BorderSizePixel=0,Image="rbxassetid://1427967925",Name="Outlines",Parent={2},Position=UDim2.new(0,-5,0,-5),ScaleType=1,Size=UDim2.new(1,10,1,10),SliceCenter=Rect.new(6,6,25,25),TileSize=UDim2.new(0,20,0,20),}},
 			{16,"UIGradient",{Parent={15},Rotation=-30,Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1,0),NumberSequenceKeypoint.new(1,1,0),}),}},
 			{17,"UIGradient",{Parent={2},Rotation=-30,Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,1,0),NumberSequenceKeypoint.new(1,1,0),}),}},
+			{18,"UIDragDetector", {Parent={2}}}
 		})
 		Main.ShowGui(gui)
 		local backGradient = gui.Main.UIGradient
@@ -1076,7 +1155,7 @@ Main = (function()
 			gui:Destroy()
 		end
 
-		return {SetProgress = setProgress, Close = close}
+		return {SetProgress = setProgress, Close = close, Object = gui}
 	end
 
 	Main.CreateApp = function(data)
@@ -1242,6 +1321,47 @@ Main = (function()
 				service.TweenService:Create(Main.MainGui.OpenButton,TweenInfo.new(0,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{BackgroundTransparency = Main.MainGuiOpen and 0 or 0.2}):Play()
 			end
 		end)
+		
+		local infoDexIntro, isInfoCD
+		
+		openButton.MainFrame.BottomFrame.Settings.Visible = false -- hide it for now
+		
+		openButton.MainFrame.BottomFrame.Information.MouseButton1Click:Connect(function()
+			local duration = 1
+			local Infos = {
+				"Contributors >>",
+				"Toon (IY Dex and PRs)",
+				"Moon (Dex)",
+				"Cazan (3D Preview)",
+			}
+			
+			if isInfoCD then return end
+			isInfoCD = true
+			if not infoDexIntro then
+				infoDexIntro = Main.CreateIntro("Running")
+				
+				coroutine.wrap(function()
+					while infoDexIntro do
+						for i,text in Infos do
+							if not infoDexIntro then break end
+							infoDexIntro.SetProgress(text,(1 / #Infos) * i)
+							task.wait(duration)
+						end
+					end
+				end)()
+				
+				Lib.FastWait(1.5)
+				isInfoCD = false
+			else
+				coroutine.wrap(function()
+					infoDexIntro.Close()
+					infoDexIntro = nil
+					
+					Lib.FastWait(1.5)
+					isInfoCD = false
+				end)()
+			end
+		end)
 
 		-- Create Main Apps
 		Main.CreateApp({Name = "Explorer", IconMap = Main.LargeIcons, Icon = "Explorer", Open = true, Window = Explorer.Window})
@@ -1266,13 +1386,13 @@ Main = (function()
 
 		Main.CreateApp({Name = "Notepad", IconMap = Main.LargeIcons, Icon = "Script_Viewer", Window = ScriptViewer.Window})
 		
-		Main.CreateApp({Name = "Model Viewer", IconMap = Main.LargeIcons, Icon = 6, Window = ModelViewer.Window})
-		
 		Main.CreateApp({Name = "Console", IconMap = Main.LargeIcons, Icon = "Output", Window = Console.Window})
 		
 		Main.CreateApp({Name = "Save Instance", IconMap = Main.LargeIcons, Icon = "Watcher", Window = SaveInstance.Window})
+		
+		Main.CreateApp({Name = "3D Viewer", IconMap = Explorer.LegacyClassIcons, Icon = 54, Window = ModelViewer.Window})
 
-		Main.CreateApp({Name = "Secret Service Panel", IconMap = Main.LargeIcons, Icon = "Output", Window = SecretServicePanel.Window})
+		--Main.CreateApp({Name = "Secret Service Panel", IconMap = Main.LargeIcons, Icon = "Output", Window = SecretServicePanel.Window})
 
 
 		Lib.ShowGui(gui)
@@ -1296,8 +1416,14 @@ Main = (function()
 
 	Main.Init = function()
 		Main.Elevated = pcall(function() local a = game:GetService("CoreGui"):GetFullName() end)
+		
+		if writefile and isfile and not isfile("DexSettings.json") then
+			writefile("DexSettings.json", Main.ExportSettings())
+		end
+		
 		Main.InitEnv()
 		Main.LoadSettings()
+		
 		Main.SetupFilesystem()
 
 		-- Load Lib
@@ -1316,15 +1442,15 @@ Main = (function()
 			Rename = 14,               JumpToParent = 15,               ExploreData = 16,      Save = 17,              CallFunction = 18,    CallRemote = 19,          Undo = 20,
 			Undo_Disabled = 21,        Redo = 22,                       Redo_Disabled = 23,    Expand_Over = 24,       Expand = 25,          Collapse_Over = 26,       Collapse = 27,
 			SelectChildren = 28,       SelectChildren_Disabled = 29,    InsertObject = 30,     ViewScript = 31,        AddStar = 32,         RemoveStar = 33,          Script_Disabled = 34,
-			LocalScript_Disabled = 35, Play = 36,                       Pause = 37,            Rename_Disabled = 38
+			LocalScript_Disabled = 35, Play = 36,                       Pause = 37,            Rename_Disabled = 38,   Empty = 1000
 		})
 		Main.LargeIcons = Lib.IconMap.new("rbxassetid://6579106223",256,256,32,32)
 		Main.LargeIcons:SetDict({
 			Explorer = 0, Properties = 1, Script_Viewer = 2, Watcher = 3, Output = 4
 		})
 		
-		-- Loading bypasses
-		--[[intro.SetProgress("Loading Adonis Bypass",0.1)
+		--[[ Loading bypasses
+		intro.SetProgress("Loading Adonis Bypass",0.1)
 		pcall(Main.LoadAdonisBypass)
 		
 		intro.SetProgress("Loading GC Bypass",0.2)
@@ -1385,7 +1511,7 @@ Main = (function()
 		SaveInstance.Init()
 		ModelViewer.Init()
 		
-		SecretServicePanel.Init()
+		--SecretServicePanel.Init()
 		
 		Lib.FastWait()
 

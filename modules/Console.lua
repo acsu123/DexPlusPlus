@@ -1,12 +1,9 @@
 --[[
-	Console App Module
-	
-	Yes this does not exist on original Dex
+	Console Module
 ]]
-local loadstring = (game:GetService("RunService"):IsStudio() and require(script.Parent.Loadstring)) or loadstring
 -- Common Locals
 local Main,Lib,Apps,Settings -- Main Containers
-local Explorer, Properties, Console, Notebook -- Major Apps
+local Explorer, Properties, ScriptViewer, Notebook -- Major Apps
 local API,RMD,env,service,plr,create,createSimple -- Main Locals
 
 local function initDeps(data)
@@ -27,7 +24,7 @@ end
 local function initAfterMain()
 	Explorer = Apps.Explorer
 	Properties = Apps.Properties
-	Console = Apps.Console
+	ScriptViewer = Apps.ScriptViewer
 	Notebook = Apps.Notebook
 end
 
@@ -182,10 +179,6 @@ local function main()
 	G2L["a"].ScrollBarImageColor3 = Color3.fromRGB(70, 70, 70)
 	G2L["a"]["ScrollBarThickness"] = 16;
 	G2L["a"]["ZIndex"] = 1;
-
-	if Settings.Window.Transparency then
-		G2L["a"].BackgroundTransparency = Settings.Window.Transparency
-	end
 
 	G2L["a"]:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(function()
 		if G2L["a"].AbsoluteCanvasSize ~= G2L["a"].AbsoluteWindowSize then
@@ -404,7 +397,7 @@ local function main()
 	-- Require G2L wrapper
 	local G2L_REQUIRE = require;
 	local G2L_MODULES = {};
-	local function require(Module:ModuleScript)
+	local function require(Module)
 		local ModuleState = G2L_MODULES[Module];
 		if ModuleState then
 			if not ModuleState.Required then
@@ -602,7 +595,6 @@ local function main()
 
 	Console.Init = function()
 		-- StarterGui.ScreenGui.ConsoleHandler
-		local script = G2L["1c"];
 
 		local CtrlScroll = false
 		local AutoScroll = false
@@ -615,7 +607,7 @@ local function main()
 		local RunService = game:GetService("RunService")
 
 		local Console = ConsoleFrame
-		local SyntaxHighlightingModule = require(script.SyntaxHighlighter)
+		local SyntaxHighlightingModule = require(G2L["1c"].SyntaxHighlighter)
 		local OutputTextSize = Console.Output.OutputTextSize
 
 		local function Tween(obj, info, prop)
@@ -798,9 +790,4 @@ local function main()
 	return Console
 end
 
--- TODO: Remove when open source
-if gethsfuncs then
-	_G.moduleData = {InitDeps = initDeps, InitAfterMain = initAfterMain, Main = main}
-else
-	return {InitDeps = initDeps, InitAfterMain = initAfterMain, Main = main}
-end
+return {InitDeps = initDeps, InitAfterMain = initAfterMain, Main = main}
