@@ -553,8 +553,13 @@ local function main()
 		win:SetTitle("Save As")
 		win.Elements.Error.Text = ""
 		win.Elements.NameBox:SetText(filename or "")
-		win.Elements.SaveButton:SetDisabled(true)
-
+		
+		if win.Elements.NameBox.Text == "" then
+			win.Elements.SaveButton:SetDisabled(true)
+		else
+			win.Elements.SaveButton:SetDisabled(false)
+		end
+		
 		win:Show()
 	end
 

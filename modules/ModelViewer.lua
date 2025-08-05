@@ -293,7 +293,8 @@ local function main()
 					local success, result = pcall(env.saveinstance,
 					originalModel, filename,
 						{
-							Decompile = true
+							Decompile = true,
+							RemovePlayerCharacters = false
 						}
 					)
 					

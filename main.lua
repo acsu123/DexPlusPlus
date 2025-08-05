@@ -1,11 +1,3 @@
---[[
-	Dex++
-	Stable 2.1
-	
-	Developed by Chillz
-	
-	Dex++ is a revival of Moon's Dex, made to fulfill Moon's Dex prophecy.
-]]
 local oldgame = oldgame or game
 
 cloneref = cloneref or function(ref)
@@ -177,7 +169,7 @@ Main = (function()
 	Main.Elevated = false
 	Main.AllowDraggableOnMobile = true
 	Main.MissingEnv = {}
-	Main.Version = DexVersion or "2.2"
+	Main.Version = "2.2"
 	Main.Mouse = plr:GetMouse()
 	Main.AppControls = {}
 	Main.Apps = Apps
@@ -454,6 +446,7 @@ Main = (function()
 		
 			local function wrappedsaveinstance(obj, filepath, options)
 				options["FilePath"] = filepath
+				--options["ReadMe"] = false
 				options["Object"] = obj
 				return synsaveinstance(options)
 			end

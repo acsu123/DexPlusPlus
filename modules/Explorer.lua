@@ -1366,7 +1366,8 @@ local function main()
 			if #sList == 1 then
 				Lib.SaveAsPrompt("Place_"..game.PlaceId.."_"..sList[1].Obj.ClassName.."_"..sList[1].Obj.Name.."_"..os.time(), function(filename)
 					env.saveinstance(sList[1].Obj, filename, {
-						Decompile = true
+						Decompile = true,
+						RemovePlayerCharacters = false
 					})
 				end)
 			elseif #sList > 1 then
@@ -1375,7 +1376,8 @@ local function main()
 					-- "Place_"..game.PlaceId.."_"..sList[1].Obj.ClassName.."_"..sList[i].Obj.Name.."_"..os.time()
 					Lib.SaveAsPrompt("Place_"..game.PlaceId.."_"..sList[i].Obj.ClassName.."_"..sList[i].Obj.Name.."_"..os.time(), function(filename)
 						env.saveinstance(sList[i].Obj, filename, {
-							Decompile = true
+							Decompile = true,
+							RemovePlayerCharacters = false
 						})
 					end)
 					
