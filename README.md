@@ -41,7 +41,7 @@ Every donation is highly apreciated, this is compeletely optional.
 
 ## Third Party Components
 - Konstant Decompiler (Let me know)
-- [UniversalSynapseSaveInstance (USSI)](https://github.com/luau/UniversalSynSaveInstance) https://discord.gg/wx4ThpAsmw
+- [UniversalSynapseSaveInstance (USSI)](https://github.com/luau/UniversalSynSaveInstance)
 
 ## License
 [![Dex++ License](https://img.shields.io/badge/Dex++-License-green)](https://github.com/AZYsGithub/DexPlusPlus/blob/main/LICENSE)
